@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Pagamento {
+  PIX
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+  DINHEIRO
+}
+
+model Tipo {
+  id      Int      @id @default(autoincrement())
+  nome    String
+  lanches Lanche[]
+
+  @@map("tipos")
+}
+
+model Admin {
+  id      Int      @id @default(autoincrement())
+  nome    String
+  email   String   @unique
+  senha   String
+  lanches Lanche[]
+  pedidos Pedido[]
+
+  @@map("admins")
+}
+
+model Cliente {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  endereco String?
+  telefone String?
+  email    String   @unique
+  senha    String
+  pedidos  Pedido[]
+
+  @@map("clientes")
+}
+
+model Lanche {
+  id         Int     @id @default(autoincrement())
+  nome       String
+  tipoId     Int     @map("tipo_id")
+  preco      Decimal @db.Decimal(10, 2)
+  quantidade Int
+  adminId    Int     @map("admin_id")
+
+  tipo        Tipo               @relation(fields: [tipoId], references: [id])
+  admin       Admin              @relation(fields: [adminId], references: [id])
+  fotos       Foto[]
+  pedidos     Pedido[]
+  condimentos LancheCondimento[]
+
+  @@map("lanches")
+}
+
+model Foto {
+  id        Int     @id @default(autoincrement())
+  lancheId  Int     @map("lanche_id")
+  descricao String?
+  url       String
+
+  lanche Lanche @relation(fields: [lancheId], references: [id])
+
+  @@map("fotos")
+}
+
+model Condimento {
+  id      Int                @id @default(autoincrement())
+  nome    String
+  lanches LancheCondimento[]
+
+  @@map("condimentos")
+}
+
+model LancheCondimento {
+  lancheId     Int @map("lanche_id")
+  condimentoId Int @map("condimento_id")
+
+  lanche     Lanche     @relation(fields: [lancheId], references: [id])
+  condimento Condimento @relation(fields: [condimentoId], references: [id])
+
+  @@id([lancheId, condimentoId])
+  @@map("lanche_condimentos")
+}
+
+model Pedido {
+  id        Int       @id @default(autoincrement())
+  lancheId  Int       @map("lanche_id")
+  clienteId Int       @map("cliente_id")
+  resposta  String?   @db.Text
+  data      DateTime  @default(now())
+  adminId   Int       @map("admin_id")
+  tipoPag   Pagamento @map("tipo_pag")
+
+  lanche  Lanche  @relation(fields: [lancheId], references: [id])
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+  admin   Admin   @relation(fields: [adminId], references: [id])
+
+  @@map("pedidos")
+}
