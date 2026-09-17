@@ -7,11 +7,28 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Pagamento {
-  PIX
-  CARTAO_DEBITO
-  CARTAO_CREDITO
-  DINHEIRO
+model Usuario {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  senha         String
+  nivelAcesso   NivelAcesso    @map("nivel_acesso")
+  clientePerfil ClienteTabela?
+  pedidos       Pedido[]
+
+  @@map("usuarios")
+}
+
+model ClienteTabela {
+  id        Int    @id @default(autoincrement())
+  usuarioId Int    @unique @map("usuario_id")
+  nome      String
+  endereco  String
+  telefone  String
+
+  usuario Usuario  @relation(fields: [usuarioId], references: [id])
+  pedidos Pedido[]
+
+  @@map("clientes_tabela")
 }
 
 model Tipo {
@@ -22,39 +39,15 @@ model Tipo {
   @@map("tipos")
 }
 
-model Admin {
-  id      Int      @id @default(autoincrement())
-  nome    String
-  email   String   @unique
-  senha   String
-  lanches Lanche[]
-  pedidos Pedido[]
-
-  @@map("admins")
-}
-
-model Cliente {
-  id       Int      @id @default(autoincrement())
-  nome     String
-  endereco String?
-  telefone String?
-  email    String   @unique
-  senha    String
-  pedidos  Pedido[]
-
-  @@map("clientes")
-}
-
 model Lanche {
   id         Int     @id @default(autoincrement())
   nome       String
+  descricao  String? @db.Text
   tipoId     Int     @map("tipo_id")
   preco      Decimal @db.Decimal(10, 2)
   quantidade Int
-  adminId    Int     @map("admin_id")
 
   tipo        Tipo               @relation(fields: [tipoId], references: [id])
-  admin       Admin              @relation(fields: [adminId], references: [id])
   fotos       Foto[]
   pedidos     Pedido[]
   condimentos LancheCondimento[]
@@ -82,28 +75,39 @@ model Condimento {
 }
 
 model LancheCondimento {
+  id           Int @id @default(autoincrement())
   lancheId     Int @map("lanche_id")
   condimentoId Int @map("condimento_id")
 
   lanche     Lanche     @relation(fields: [lancheId], references: [id])
   condimento Condimento @relation(fields: [condimentoId], references: [id])
 
-  @@id([lancheId, condimentoId])
   @@map("lanche_condimentos")
 }
 
 model Pedido {
-  id        Int       @id @default(autoincrement())
-  lancheId  Int       @map("lanche_id")
-  clienteId Int       @map("cliente_id")
-  resposta  String?   @db.Text
-  data      DateTime  @default(now())
-  adminId   Int       @map("admin_id")
-  tipoPag   Pagamento @map("tipo_pag")
-
-  lanche  Lanche  @relation(fields: [lancheId], references: [id])
-  cliente Cliente @relation(fields: [clienteId], references: [id])
-  admin   Admin   @relation(fields: [adminId], references: [id])
+  id              Int           @id @default(autoincrement())
+  lancheId        Int           @map("lanche_id")
+  clienteTabelaId Int           @map("clientetabela_id")
+  resposta        String?       @db.Text
+  data            DateTime      @default(now())
+  usuarioId       Int           @map("usuario_id")
+  pagamento       Pagamento
+  lanche          Lanche        @relation(fields: [lancheId], references: [id])
+  clienteTabela   ClienteTabela @relation(fields: [clienteTabelaId], references: [id])
+  admin           Usuario       @relation(fields: [usuarioId], references: [id])
 
   @@map("pedidos")
+}
+
+enum Pagamento {
+  PIX
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+  DINHEIRO
+}
+
+enum NivelAcesso {
+  CLIENTE
+  ADMIN
 }

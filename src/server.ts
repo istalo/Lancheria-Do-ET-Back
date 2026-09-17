@@ -1,14 +1,16 @@
 import express from 'express'
 import cors from 'cors'
-
 import routesMarcas from './routes/tipos'
 import routesCarros from './routes/pedidos'
+import swaggerUi from "swagger-ui-express";
+import swaggerDocument from "../swagger-output.json";
 
 const app = express()
 const port = 3000
 
 app.use(express.json())
 app.use(cors())
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.use("/marcas", routesMarcas)
 app.use("/carros", routesCarros)

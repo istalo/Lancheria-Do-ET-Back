@@ -1,7 +1,6 @@
 import { prisma } from "../../lib/prisma"
 import { Combustiveis } from "../../generated/prisma/enums"
 import { buscarDadosComGemini } from '../../services/iaServices'
-
 import { Router } from 'express'
 import { z } from 'zod'
 
