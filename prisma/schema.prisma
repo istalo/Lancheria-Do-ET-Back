@@ -14,19 +14,19 @@ model Usuario {
   nivelAcesso   NivelAcesso    @map("nivel_acesso")
   clientePerfil ClienteTabela?
   pedidos       Pedido[]
+  tokens        Token[]
 
   @@map("usuarios")
 }
 
 model ClienteTabela {
-  id        Int    @id @default(autoincrement())
-  usuarioId Int    @unique @map("usuario_id")
+  id        Int      @id @default(autoincrement())
+  usuarioId Int      @unique @map("usuario_id")
   nome      String
   endereco  String
   telefone  String
-
-  usuario Usuario  @relation(fields: [usuarioId], references: [id])
-  pedidos Pedido[]
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  pedidos   Pedido[]
 
   @@map("clientes_tabela")
 }
@@ -40,13 +40,12 @@ model Tipo {
 }
 
 model Lanche {
-  id         Int     @id @default(autoincrement())
-  nome       String
-  descricao  String? @db.Text
-  tipoId     Int     @map("tipo_id")
-  preco      Decimal @db.Decimal(10, 2)
-  quantidade Int
-
+  id          Int                @id @default(autoincrement())
+  nome        String
+  descricao   String?            @db.Text
+  tipoId      Int                @map("tipo_id")
+  preco       Decimal            @db.Decimal(10, 2)
+  quantidade  Int
   tipo        Tipo               @relation(fields: [tipoId], references: [id])
   fotos       Foto[]
   pedidos     Pedido[]
@@ -60,8 +59,7 @@ model Foto {
   lancheId  Int     @map("lanche_id")
   descricao String?
   url       String
-
-  lanche Lanche @relation(fields: [lancheId], references: [id])
+  lanche    Lanche  @relation(fields: [lancheId], references: [id])
 
   @@map("fotos")
 }
@@ -75,12 +73,11 @@ model Condimento {
 }
 
 model LancheCondimento {
-  id           Int @id @default(autoincrement())
-  lancheId     Int @map("lanche_id")
-  condimentoId Int @map("condimento_id")
-
-  lanche     Lanche     @relation(fields: [lancheId], references: [id])
-  condimento Condimento @relation(fields: [condimentoId], references: [id])
+  id           Int        @id @default(autoincrement())
+  lancheId     Int        @map("lanche_id")
+  condimentoId Int        @map("condimento_id")
+  lanche       Lanche     @relation(fields: [lancheId], references: [id])
+  condimento   Condimento @relation(fields: [condimentoId], references: [id])
 
   @@map("lanche_condimentos")
 }
@@ -100,6 +97,19 @@ model Pedido {
   @@map("pedidos")
 }
 
+model Token {
+  id        Int       @id @default(autoincrement())
+  usuarioId Int
+  token     String    @unique
+  tipoToken TipoToken
+  criado    DateTime  @default(now())
+  expira    DateTime
+  revogado  Boolean   @default(false)
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("tokens")
+}
+
 enum Pagamento {
   PIX
   CARTAO_DEBITO
@@ -110,4 +120,10 @@ enum Pagamento {
 enum NivelAcesso {
   CLIENTE
   ADMIN
+}
+
+enum TipoToken {
+  ATUALIZAR
+  REDEFINIR_SENHA
+  VALIDACAO_EMAIL
 }

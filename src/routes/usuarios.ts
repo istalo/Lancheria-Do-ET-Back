@@ -19,8 +19,6 @@ const transporter = nodemailer.createTransport({
 })
 
 const usuarioSchema = z.object({
-  nome: z.string().min(3,
-    { message: "Nome deve possuir, no mínimo, 3 caracteres" }),
   email: z.email().min(10,
     { message: "E-mail, no mínimo, 10 caracteres" }),
   senha: z.string().min(8,
@@ -92,7 +90,7 @@ router.post("/", async (req, res) => {
     return
   }
 
-  const { nome, email, senha } = valida.data
+  const { email, senha } = valida.data
 
   const mensaErros = validaSenha(senha)
 
@@ -107,7 +105,7 @@ router.post("/", async (req, res) => {
 
   try {
     const usuario = await prisma.usuario.create({
-      data: { nome, email, senha: hash }
+      data: { email, senha: hash }
     })
 
     const tokenAtivacao = crypto.randomBytes(32).toString('hex')

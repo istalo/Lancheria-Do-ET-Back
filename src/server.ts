@@ -1,9 +1,9 @@
 import express from 'express'
 import cors from 'cors'
-import routesMarcas from './routes/tipos'
-import routesCarros from './routes/pedidos'
-import swaggerUi from "swagger-ui-express";
-import swaggerDocument from "../swagger-output.json";
+import adminRoutes from './routes/admin'
+import lanchesRoutes from './routes/lanches'
+import swaggerUi from 'swagger-ui-express'
+import swaggerDocument from '../swagger-output.json'
 
 const app = express()
 const port = 3000
@@ -12,8 +12,8 @@ app.use(express.json())
 app.use(cors())
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
-app.use("/marcas", routesMarcas)
-app.use("/carros", routesCarros)
+app.use('/admin', adminRoutes); 
+app.use('/lanches', lanchesRoutes);
 
 app.get('/', (req, res) => {
   res.send('API: Revenda de Veículos')
