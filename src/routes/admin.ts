@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { verificaAdmin } from './verificaToken'
+import { verificaToken, verificaAdmin } from '../middlewares/verificaToken'
 
 const router = Router()
 

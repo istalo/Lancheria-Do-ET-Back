@@ -11,7 +11,7 @@ model Usuario {
   id            Int            @id @default(autoincrement())
   email         String         @unique
   senha         String
-  nivelAcesso   NivelAcesso    @map("nivel_acesso")
+  nivelAcesso   NivelAcesso    @default(CLIENTE)
   clientePerfil ClienteTabela?
   pedidos       Pedido[]
   tokens        Token[]
@@ -34,32 +34,32 @@ model ClienteTabela {
 model Tipo {
   id      Int      @id @default(autoincrement())
   nome    String
-  lanches Lanche[]
+  itens   Item[]
 
   @@map("tipos")
 }
 
-model Lanche {
+model Item {
   id          Int                @id @default(autoincrement())
   nome        String
   descricao   String?            @db.Text
   tipoId      Int                @map("tipo_id")
   preco       Decimal            @db.Decimal(10, 2)
-  quantidade  Int
+  disponivel  Boolean            @default(true)
   tipo        Tipo               @relation(fields: [tipoId], references: [id])
   fotos       Foto[]
-  pedidos     Pedido[]
+  pedidos     PedidoItem[]
   condimentos LancheCondimento[]
 
-  @@map("lanches")
+  @@map("itens")
 }
 
 model Foto {
   id        Int     @id @default(autoincrement())
-  lancheId  Int     @map("lanche_id")
+  itemId  Int     @map("item_id")
   descricao String?
   url       String
-  lanche    Lanche  @relation(fields: [lancheId], references: [id])
+  item      Item  @relation(fields: [itemId], references: [id])
 
   @@map("fotos")
 }
@@ -67,34 +67,42 @@ model Foto {
 model Condimento {
   id      Int                @id @default(autoincrement())
   nome    String
-  lanches LancheCondimento[]
+  itens LancheCondimento[]
 
   @@map("condimentos")
 }
 
 model LancheCondimento {
   id           Int        @id @default(autoincrement())
-  lancheId     Int        @map("lanche_id")
+  itemId     Int          @map("item_id")
   condimentoId Int        @map("condimento_id")
-  lanche       Lanche     @relation(fields: [lancheId], references: [id])
+  item         Item       @relation(fields: [itemId], references: [id])
   condimento   Condimento @relation(fields: [condimentoId], references: [id])
 
   @@map("lanche_condimentos")
 }
 
 model Pedido {
-  id              Int           @id @default(autoincrement())
-  lancheId        Int           @map("lanche_id")
-  clienteTabelaId Int           @map("clientetabela_id")
-  resposta        String?       @db.Text
-  data            DateTime      @default(now())
-  usuarioId       Int           @map("usuario_id")
+  id              Int              @id @default(autoincrement())
+  clienteTabelaId Int              @map("clientetabela_id")
+  usuarioId       Int              @map("usuario_id")
   pagamento       Pagamento
-  lanche          Lanche        @relation(fields: [lancheId], references: [id])
-  clienteTabela   ClienteTabela @relation(fields: [clienteTabelaId], references: [id])
-  admin           Usuario       @relation(fields: [usuarioId], references: [id])
+  data            DateTime         @default(now())
 
-  @@map("pedidos")
+  itens           PedidoItem[]
+  clienteTabela   ClienteTabela    @relation(fields: [clienteTabelaId], references: [id])
+  usuario         Usuario          @relation(fields: [usuarioId], references: [id])
+}
+
+model PedidoItem {
+  id         Int      @id @default(autoincrement())
+  pedidoId   Int      @map("pedido_id")
+  itemId     Int      @map("item_id")
+  quantidade Int      @default(1)
+  preco      Decimal  @db.Decimal(10, 2)
+
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  item       Item     @relation(fields: [itemId], references: [id])
 }
 
 model Token {

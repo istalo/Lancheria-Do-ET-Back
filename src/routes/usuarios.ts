@@ -1,10 +1,9 @@
 import { prisma } from "../../lib/prisma"
 import { Router } from 'express'
 import { z } from 'zod'
-import { verificaToken, verificaAdmin } from "./verificaToken" 
+import { verificaToken, verificaAdmin } from "../middlewares/verificaToken"
 import bcrypt from 'bcrypt'
 import nodemailer from 'nodemailer'
-import crypto from 'crypto'
 
 const router = Router()
 
@@ -95,89 +94,22 @@ router.post("/", async (req, res) => {
   const mensaErros = validaSenha(senha)
 
   if (mensaErros.length > 0) {
-    res.status(400).json({erro: mensaErros})
+    res.status(400).json({ erro: mensaErros })
     return
   }
 
   const salt = bcrypt.genSaltSync(12)
 
-  const hash = bcrypt.hashSync(senha, salt)  
+  const hash = bcrypt.hashSync(senha, salt)
 
   try {
     const usuario = await prisma.usuario.create({
       data: { email, senha: hash }
     })
-
-    const tokenAtivacao = crypto.randomBytes(32).toString('hex')
-    const validadeToken = new Date()
-    validadeToken.setHours(validadeToken.getHours() + 24)
-
-    await prisma.token.create({
-    data: {
-      usuarioId: usuario.id,
-      token: tokenAtivacao,
-      tipoToken: "VALIDACAO_EMAIL",
-      expira: validadeToken
-    }
-  })
-
-  const linkAtivacao = `http://localhost:5173/ativar-conta?token=${tokenAtivacao}`
-
-    transporter.sendMail({
-        from: '"Dexter App" <support@dexterapp.com>',
-        to: email,
-        subject: "Ative sua conta no Dexter App",
-        text: `Bem-vindo! Clique no link para ativar sua conta: ${linkAtivacao}`,
-        html: `<h3>Bem-vindo ao Dexter!</h3>
-            <p>Para começar a usar o aplicativo, ative sua conta clicando no link abaixo:</p>
-            <a href="${linkAtivacao}">Ativar Minha Conta</a>
-            <p>Este link expira em 24 horas.</p>`
-    }).catch(err => console.error("Erro ao enviar email de ativação:", err))
-
-    res.status(201).json({ mensagem: "Verifique seu e-mail para ativar sua conta." })
-  } 
-catch (error) {
-    res.status(400).json({ erro: "Erro ao criar usuário" })
-  }
-})
-
-router.post("/ativar", async (req, res) => {
-  const { token } = req.body
-
-  if (!token) {
-    res.status(400).json({ erro: "Token de ativação não fornecido." })
-    return
-  }
-
-  try {
-    const tokenValido = await prisma.token.findFirst({
-      where: {
-        token: token,
-        tipoToken: "VALIDACAO_EMAIL",
-        revogado: false,
-        expira: { gt: new Date() },
-      }
-    })
-
-    if (!tokenValido) {
-      res.status(400).json({ erro: "Link de ativação inválido ou expirado" })
-      return
-    }
-
-    await prisma.usuario.update({
-      where: { id: tokenValido.usuarioId },
-      data: { statusConta: "ATIVA" }
-    })
-
-    await prisma.token.update({
-      where: { id: tokenValido.id },
-      data: { revogado: true }
-    })
-
-    res.status(200).json({ mensagem: "Conta ativada com sucesso! Você já pode fazer login." })
+    res.status(200).json({ mensagem: "Conta criada com sucesso! Você já pode fazer login." })
   } catch (error) {
-    console.error("ERRO NA ATIVAÇÃO DA CONTA:", error)
-    res.status(500).json({ erro: "Erro ao ativar a conta." })
+    console.error("ERRO NA CRIAÇÃO DA CONTA:", error)
+    res.status(500).json({ erro: "Erro ao criar a conta." })
   }
 })
 
@@ -186,7 +118,7 @@ router.delete("/:id", verificaToken, verificaAdmin, async (req, res) => {
 
   try {
     const usuario = await prisma.usuario.delete({
-      where: { id: String(id) }
+      where: { id: Number(id) }
     })
     res.status(200).json(usuario)
   } catch (error) {
@@ -199,7 +131,7 @@ router.post("/esqueceu-senha", async (req, res) => {
 
   try {
     const usuario = await prisma.usuario.findUnique({ where: { email } })
-    
+
     if (!usuario) {
       res.status(400).json({ erro: "E-mail não encontrado na base de dados" })
       return
@@ -208,13 +140,13 @@ router.post("/esqueceu-senha", async (req, res) => {
     const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     let codigo = ""
     for (let i = 0; i < 4; i++) {
-        codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length))
+      codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length))
     }
 
     const validadeToken = new Date()
     validadeToken.setMinutes(validadeToken.getMinutes() + 15)
 
-await prisma.token.create({
+    await prisma.token.create({
       data: {
         usuarioId: usuario.id,
         token: codigo,
@@ -224,7 +156,7 @@ await prisma.token.create({
     })
 
     transporter.sendMail({
-      from: '"Dexter App" <support@dexterapp.com>',
+      from: '"Lancheria do ET" <suporte@etlanches.com>',
       to: email,
       subject: "Código de Recuperação de Senha",
       text: `Seu código de recuperação é: ${codigo}`,
@@ -255,13 +187,13 @@ router.post("/recupera-senha", async (req, res) => {
 
   try {
     const tokenValido = await prisma.token.findFirst({
-        where: {
-            token: codigo.trim().toUpperCase(),
-            tipoToken: "REDEFINIR_SENHA",
-            revogado: false,
-            expira: {gt: new Date()},
-            usuario: { email: email }
-        }
+      where: {
+        token: codigo.trim().toUpperCase(),
+        tipoToken: "REDEFINIR_SENHA",
+        revogado: false,
+        expira: { gt: new Date() },
+        usuario: { email: email }
+      }
     })
 
     if (!tokenValido) {
