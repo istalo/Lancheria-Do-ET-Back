@@ -26,7 +26,14 @@ const usuarioSchema = z.object({
 
 router.get("/", verificaToken, verificaAdmin, async (req, res) => {
   try {
-    const usuarios = await prisma.usuario.findMany()
+    const usuarios = await prisma.usuario.findMany({
+      select: {
+        id: true,
+        email: true,
+        nivelAcesso: true,
+        clientePerfil: true
+      }
+    })
     res.status(200).json(usuarios)
   } catch (error) {
     res.status(500).json({ erro: "Erro ao buscar usuários" })

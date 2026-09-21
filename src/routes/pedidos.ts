@@ -16,7 +16,17 @@ const pedidoSchema = z.object({
 })
 
 const pedidoInclude = {
-  itens: { include: { item: { include: { tipo: true, fotos: true } } } },
+  itens: {
+    include: {
+      item: {
+        include: {
+          tipo: true,
+          fotos: true,
+          condimentos: { include: { condimento: true } }
+        }
+      }
+    }
+  },
   clienteTabela: true
 }
 
@@ -41,6 +51,18 @@ router.post("/", verificaToken, async (req: TokenInterface, res) => {
   }
 
   try {
+    const cliente = await prisma.clienteTabela.findFirst({
+      where: {
+        id: valida.data.clienteTabelaId,
+        usuarioId: req.usuarioId
+      }
+    })
+
+    if (!cliente) {
+      res.status(403).json({ erro: "Perfil de cliente inválido." })
+      return
+    }
+
     const pedido = await prisma.pedido.create({
       data: {
         clienteTabelaId: valida.data.clienteTabelaId,

@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 
 export interface TokenInterface extends Request {
-    usuarioId?: number
-    nivelAcesso?: string
+  usuarioId?: number
+  nivelAcesso?: string
 }
 
 export function verificaToken(req: TokenInterface, res: Response, next: NextFunction) {
@@ -14,10 +14,21 @@ export function verificaToken(req: TokenInterface, res: Response, next: NextFunc
     return
   }
 
-  const token = authHeader.split(' ')[1]
+  const [scheme, token] = authHeader.split(' ')
+
+  if (scheme !== 'Bearer' || !token) {
+    res.status(401).json({ erro: "Autorização deve usar o Bearer token." })
+    return
+  }
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET as string) as any
+
+    if (typeof payload !== 'object' || typeof payload.id !== 'number' ||
+      (payload.nivelAcesso !== 'CLIENTE' && payload.nivelAcesso !== 'ADMIN')) {
+      res.status(403).json({ erro: "Token inválido." })
+      return
+    }
 
     req.usuarioId = payload.id
     req.nivelAcesso = payload.nivelAcesso

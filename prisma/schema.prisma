@@ -32,9 +32,9 @@ model ClienteTabela {
 }
 
 model Tipo {
-  id      Int      @id @default(autoincrement())
-  nome    String
-  itens   Item[]
+  id    Int    @id @default(autoincrement())
+  nome  String
+  itens Item[]
 
   @@map("tipos")
 }
@@ -50,23 +50,24 @@ model Item {
   fotos       Foto[]
   pedidos     PedidoItem[]
   condimentos LancheCondimento[]
+  categoria   TipoItem           @default(LANCHE)
 
   @@map("itens")
 }
 
 model Foto {
   id        Int     @id @default(autoincrement())
-  itemId  Int     @map("item_id")
+  itemId    Int     @map("item_id")
   descricao String?
   url       String
-  item      Item  @relation(fields: [itemId], references: [id])
+  item      Item    @relation(fields: [itemId], references: [id])
 
   @@map("fotos")
 }
 
 model Condimento {
-  id      Int                @id @default(autoincrement())
-  nome    String
+  id    Int                @id @default(autoincrement())
+  nome  String
   itens LancheCondimento[]
 
   @@map("condimentos")
@@ -74,35 +75,36 @@ model Condimento {
 
 model LancheCondimento {
   id           Int        @id @default(autoincrement())
-  itemId     Int          @map("item_id")
+  itemId       Int        @map("item_id")
   condimentoId Int        @map("condimento_id")
   item         Item       @relation(fields: [itemId], references: [id])
   condimento   Condimento @relation(fields: [condimentoId], references: [id])
 
+  @@unique([itemId, condimentoId])
   @@map("lanche_condimentos")
 }
 
 model Pedido {
-  id              Int              @id @default(autoincrement())
-  clienteTabelaId Int              @map("clientetabela_id")
-  usuarioId       Int              @map("usuario_id")
+  id              Int       @id @default(autoincrement())
+  clienteTabelaId Int       @map("clientetabela_id")
+  usuarioId       Int       @map("usuario_id")
   pagamento       Pagamento
-  data            DateTime         @default(now())
+  data            DateTime  @default(now())
 
-  itens           PedidoItem[]
-  clienteTabela   ClienteTabela    @relation(fields: [clienteTabelaId], references: [id])
-  usuario         Usuario          @relation(fields: [usuarioId], references: [id])
+  itens         PedidoItem[]
+  clienteTabela ClienteTabela @relation(fields: [clienteTabelaId], references: [id])
+  usuario       Usuario       @relation(fields: [usuarioId], references: [id])
 }
 
 model PedidoItem {
-  id         Int      @id @default(autoincrement())
-  pedidoId   Int      @map("pedido_id")
-  itemId     Int      @map("item_id")
-  quantidade Int      @default(1)
-  preco      Decimal  @db.Decimal(10, 2)
+  id         Int     @id @default(autoincrement())
+  pedidoId   Int     @map("pedido_id")
+  itemId     Int     @map("item_id")
+  quantidade Int     @default(1)
+  preco      Decimal @db.Decimal(10, 2)
 
-  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
-  item       Item     @relation(fields: [itemId], references: [id])
+  pedido Pedido @relation(fields: [pedidoId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
 }
 
 model Token {
@@ -134,4 +136,9 @@ enum TipoToken {
   ATUALIZAR
   REDEFINIR_SENHA
   VALIDACAO_EMAIL
+}
+
+enum TipoItem {
+  LANCHE
+  BEBIDA
 }

@@ -5,6 +5,7 @@ import { verificaToken, verificaAdmin } from '../middlewares/verificaToken'
 const router = Router()
 
 router.get("/", async (req, res) => {
+
   const itemId = req.query.itemId ? Number(req.query.itemId) : undefined
 
   try {
@@ -24,6 +25,17 @@ router.post("/", verificaToken, verificaAdmin, async (req, res) => {
   const { itemId, condimentoId } = req.body
 
   try {
+    const item = await prisma.item.findUnique({
+      where: { id: Number(itemId) }
+    })
+    if (!item) {
+      return res.status(404).json({ erro: "Item não encontrado." })
+    }
+
+    if (item.categoria === 'BEBIDA') {
+      return res.status(400).json({ erro: "Não é possível adicionar condimentos a uma bebida." })
+    }
+
     const lancheCondimento = await prisma.lancheCondimento.create({
       data: {
         itemId: Number(itemId),
@@ -35,7 +47,7 @@ router.post("/", verificaToken, verificaAdmin, async (req, res) => {
     })
     res.status(201).json(lancheCondimento)
   } catch (error) {
-    res.status(400).json({ erro: "Erro ao vincular condimento ao lanche." })
+    res.status(400).json({ erro: "Erro ao vincular condimento ao item." })
   }
 })
 
