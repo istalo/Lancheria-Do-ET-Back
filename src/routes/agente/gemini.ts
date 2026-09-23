@@ -17,7 +17,7 @@ const schemaNutricional = {
 
 export async function estimarCaloriasComGemini(descricao: string) {
   const resposta = await ai.models.generateContent({
-    model: 'gemini-3.8-flash',
+    model: 'gemini-3.6-flash',
     contents: `
       Você é um nutricionista especialista em estimativa calórica. Analise os seguintes ingredientes de um lanche e estime o valor nutricional.
       Ingredientes: "${descricao}"

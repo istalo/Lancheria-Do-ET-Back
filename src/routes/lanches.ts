@@ -40,6 +40,15 @@ router.post("/", verificaToken, verificaAdmin, async (req, res) => {
   }
 
   try {
+    const tipo = await prisma.tipo.findUnique({
+      where: { id: valida.data.tipoId }
+    })
+
+    if (!tipo) {
+      res.status(400).json({ erro: "O tipo informado não existe." })
+      return
+    }
+
     const novoLanche = await prisma.item.create({
       data: {
         ...valida.data,
@@ -49,6 +58,7 @@ router.post("/", verificaToken, verificaAdmin, async (req, res) => {
     })
     res.status(201).json(novoLanche)
   } catch (error) {
+    console.error("ERRO AO CADASTRAR ITEM:", error)
     res.status(500).json({ erro: "Erro ao cadastrar lanche." })
   }
 })

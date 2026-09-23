@@ -1,10 +1,27 @@
 import { prisma } from '../../lib/prisma'
 import { Router } from 'express'
-import { verificaToken } from '../middlewares/verificaToken'
+import { verificaToken, verificaAdmin } from '../middlewares/verificaToken'
 
 const router = Router()
 
-router.get("/me", verificaToken, async (req: any, res) => {
+router.get("/", verificaToken, verificaAdmin, async (req: any, res) => {
+    try {
+        const clientes = await prisma.clienteTabela.findMany({
+            include: {
+                usuario: {
+                    select: {
+                        email: true
+                    }
+                }
+            }
+        })
+        res.status(200).json(clientes)
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao buscar clientes." })
+    }
+})
+
+router.get("/eu", verificaToken, async (req: any, res) => {
     const usuarioId = req.usuarioId
 
     try {

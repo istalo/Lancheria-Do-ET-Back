@@ -11,6 +11,7 @@ import condimentosRoutes from './routes/condimentos'
 import lanchesCondimentosRoutes from './routes/lanches_condimentos'
 import pedidosRoutes from './routes/pedidos'
 import clientesTabelaRoutes from './routes/clientesTabela'
+import tiposRoutes from './routes/tipos'
 
 // Gemini
 import { estimarCaloriasComGemini } from './routes/agente/gemini'
@@ -39,6 +40,7 @@ app.use('/condimentos', condimentosRoutes)
 app.use('/lanches-condimentos', lanchesCondimentosRoutes)
 app.use('/pedidos', pedidosRoutes)
 app.use('/clientes', clientesTabelaRoutes)
+app.use('/tipos', tiposRoutes)
 
 // Rota do Gemini para estimar calorias
 app.post('/calorias', verificaToken, async (req, res) => {
