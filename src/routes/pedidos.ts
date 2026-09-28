@@ -12,7 +12,8 @@ const pedidoSchema = z.object({
     quantidade: z.number().int().positive().optional()
   })).min(1),
   clienteTabelaId: z.number().int().positive(),
-  pagamento: z.enum(Pagamento)
+  pagamento: z.enum(Pagamento),
+  observacoes: z.string().max(500).optional()
 })
 
 const pedidoInclude = {

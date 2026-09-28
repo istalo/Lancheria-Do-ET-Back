@@ -90,6 +90,7 @@ model Pedido {
   usuarioId       Int       @map("usuario_id")
   pagamento       Pagamento
   data            DateTime  @default(now())
+  observacoes     String?   @db.Text
 
   itens         PedidoItem[]
   clienteTabela ClienteTabela @relation(fields: [clienteTabelaId], references: [id])
