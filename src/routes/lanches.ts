@@ -12,6 +12,7 @@ const itemSchema = z.object({
   tipoId: z.number().int().positive(),
   preco: z.number().nonnegative(),
   disponivel: z.boolean().optional(),
+  destacaque: z.boolean().optional(),
   categoria: z.enum(TipoItem).optional()
 })
 
