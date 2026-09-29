@@ -1,10 +1,10 @@
-import { prisma } from '../../lib/prisma'
-import { TipoItem } from '../../generated/prisma/enums'
-import { Router } from 'express'
-import { z } from 'zod'
-import { verificaToken, verificaAdmin } from '../middlewares/verificaToken'
+import { prisma } from "../../lib/prisma";
+import { TipoItem } from "../../generated/prisma/enums";
+import { Router } from "express";
+import { z } from "zod";
+import { verificaToken, verificaAdmin } from "../middlewares/verificaToken";
 
-const router = Router()
+const router = Router();
 
 const itemSchema = z.object({
   nome: z.string().min(1),
@@ -13,8 +13,8 @@ const itemSchema = z.object({
   preco: z.number().nonnegative(),
   disponivel: z.boolean().optional(),
   destaque: z.boolean().optional(),
-  categoria: z.enum(TipoItem).optional()
-})
+  categoria: z.enum(TipoItem).optional(),
+});
 
 const novoLancheCompletoSchema = z.object({
   nome: z.string().trim().min(1),
@@ -23,8 +23,8 @@ const novoLancheCompletoSchema = z.object({
   tipo: z.string().trim().min(1),
   imagemUrl: z.url(),
   condimentos: z.array(z.string().trim().min(1)).default([]),
-  categoria: z.enum(TipoItem).default(TipoItem.LANCHE)
-})
+  categoria: z.enum(TipoItem).default(TipoItem.LANCHE),
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -33,43 +33,47 @@ router.get("/", async (req, res) => {
         tipo: true,
         fotos: true,
         condimentos: {
-          include: { condimento: true }
-        }
-      }
-    })
-    res.status(200).json(lanches)
+          include: { condimento: true },
+        },
+      },
+    });
+    res.status(200).json(lanches);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanches." })
+    res.status(500).json({ erro: "Erro ao buscar lanches." });
   }
-})
+});
 
 router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
-  const valida = novoLancheCompletoSchema.safeParse(req.body)
+  const valida = novoLancheCompletoSchema.safeParse(req.body);
 
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error.issues })
-    return
+    res.status(400).json({ erro: valida.error.issues });
+    return;
   }
 
-  const dados = valida.data
-  const condimentos = [...new Map(
-    dados.condimentos.map(nome => [nome.toLocaleLowerCase(), nome])
-  ).values()]
+  const dados = valida.data;
+  const condimentos = [
+    ...new Map(
+      dados.condimentos.map((nome) => [nome.toLocaleLowerCase(), nome]),
+    ).values(),
+  ];
 
   if (dados.categoria === TipoItem.BEBIDA && condimentos.length > 0) {
-    res.status(400).json({ erro: "Bebidas não podem receber condimentos." })
-    return
+    res.status(400).json({ erro: "Bebidas não podem receber condimentos." });
+    return;
   }
 
   try {
     const lanche = await prisma.$transaction(async (tx) => {
       const tipoExistente = await tx.tipo.findFirst({
-        where: { nome: { equals: dados.tipo, mode: 'insensitive' } }
-      })
+        where: { nome: { equals: dados.tipo, mode: "insensitive" } },
+      });
 
-      const tipo = tipoExistente ?? await tx.tipo.create({
-        data: { nome: dados.tipo }
-      })
+      const tipo =
+        tipoExistente ??
+        (await tx.tipo.create({
+          data: { nome: dados.tipo },
+        }));
 
       const item = await tx.item.create({
         data: {
@@ -78,33 +82,35 @@ router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
           preco: dados.preco,
           tipoId: tipo.id,
           categoria: dados.categoria,
-          disponivel: true
-        }
-      })
+          disponivel: true,
+        },
+      });
 
       await tx.foto.create({
         data: {
           itemId: item.id,
           url: dados.imagemUrl,
-          descricao: dados.descricao || null
-        }
-      })
+          descricao: dados.descricao || null,
+        },
+      });
 
       for (const nome of condimentos) {
         const condimentoExistente = await tx.condimento.findFirst({
-          where: { nome: { equals: nome, mode: 'insensitive' } }
-        })
+          where: { nome: { equals: nome, mode: "insensitive" } },
+        });
 
-        const condimento = condimentoExistente ?? await tx.condimento.create({
-          data: { nome }
-        })
+        const condimento =
+          condimentoExistente ??
+          (await tx.condimento.create({
+            data: { nome },
+          }));
 
         await tx.lancheCondimento.create({
           data: {
             itemId: item.id,
-            condimentoId: condimento.id
-          }
-        })
+            condimentoId: condimento.id,
+          },
+        });
       }
 
       return tx.item.findUnique({
@@ -112,90 +118,106 @@ router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
         include: {
           tipo: true,
           fotos: true,
-          condimentos: { include: { condimento: true } }
-        }
-      })
-    })
+          condimentos: { include: { condimento: true } },
+        },
+      });
+    });
 
     res.status(201).json({
       mensagem: "Lanche adicionado com sucesso!",
-      lanche
-    })
+      lanche,
+    });
   } catch (error) {
-    console.error("ERRO AO CADASTRAR LANCHE COMPLETO:", error)
-    res.status(500).json({ erro: "Erro ao cadastrar lanche." })
+    console.error("ERRO AO CADASTRAR LANCHE COMPLETO:", error);
+    res.status(500).json({ erro: "Erro ao cadastrar lanche." });
   }
-})
+});
 
 router.post("/", verificaToken, verificaAdmin, async (req, res) => {
-  const valida = itemSchema.safeParse(req.body)
+  const valida = itemSchema.safeParse(req.body);
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error })
-    return
+    res.status(400).json({ erro: valida.error });
+    return;
   }
 
   try {
     const tipo = await prisma.tipo.findUnique({
-      where: { id: valida.data.tipoId }
-    })
+      where: { id: valida.data.tipoId },
+    });
 
     if (!tipo) {
-      res.status(400).json({ erro: "O tipo informado não existe." })
-      return
+      res.status(400).json({ erro: "O tipo informado não existe." });
+      return;
     }
 
     const novoLanche = await prisma.item.create({
       data: {
         ...valida.data,
         disponivel: valida.data.disponivel ?? true,
-        categoria: valida.data.categoria ?? TipoItem.LANCHE
-      }
-    })
-    res.status(201).json(novoLanche)
+        categoria: valida.data.categoria ?? TipoItem.LANCHE,
+      },
+    });
+    res.status(201).json(novoLanche);
   } catch (error) {
-    console.error("ERRO AO CADASTRAR ITEM:", error)
-    res.status(500).json({ erro: "Erro ao cadastrar lanche." })
+    console.error("ERRO AO CADASTRAR ITEM:", error);
+    res.status(500).json({ erro: "Erro ao cadastrar lanche." });
   }
-})
+});
 
 router.patch("/:id", verificaToken, verificaAdmin, async (req, res) => {
-  const { id } = req.params
-  const valida = itemSchema.partial().safeParse(req.body)
+  const { id } = req.params;
+  const valida = itemSchema.partial().safeParse(req.body);
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error })
-    return
+    res.status(400).json({ erro: valida.error });
+    return;
   }
 
   try {
     const lancheAtualizado = await prisma.item.update({
       where: { id: Number(id) },
-      data: valida.data
-    })
-    res.status(200).json(lancheAtualizado)
+      data: valida.data,
+    });
+    res.status(200).json(lancheAtualizado);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao atualizar lanche." })
+    res.status(500).json({ erro: "Erro ao atualizar lanche." });
   }
-})
+});
 
 router.delete("/:id", verificaToken, verificaAdmin, async (req, res) => {
-  const { id } = req.params
+  const { id } = req.params;
 
   try {
     const lancheDeletado = await prisma.item.delete({
-      where: { id: Number(id) }
-    })
-    res.status(200).json(lancheDeletado)
+      where: { id: Number(id) },
+    });
+    res.status(200).json(lancheDeletado);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao deletar lanche." })
+    res.status(500).json({ erro: "Erro ao deletar lanche." });
   }
-})
+});
+
+router.get("/destaques", async (req, res) => {
+  try {
+    const lanches = await prisma.item.findMany({
+      where: { destaque: true },
+      include: {
+        tipo: true,
+        fotos: true,
+        condimentos: { include: { condimento: true } },
+      },
+    });
+    res.status(200).json(lanches);
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar destaques." });
+  }
+});
 
 router.get("/:id", async (req, res) => {
-  const id = Number(req.params.id)
+  const id = Number(req.params.id);
 
   if (!Number.isInteger(id)) {
-    res.status(400).json({ erro: "Id inválido." })
-    return
+    res.status(400).json({ erro: "Id inválido." });
+    return;
   }
 
   try {
@@ -205,41 +227,43 @@ router.get("/:id", async (req, res) => {
         tipo: true,
         fotos: true,
         condimentos: {
-          include: { condimento: true }
-        }
-      }
-    })
+          include: { condimento: true },
+        },
+      },
+    });
 
     if (!lanche) {
-      res.status(404).json({ erro: "Lanche não encontrado." })
-      return
+      res.status(404).json({ erro: "Lanche não encontrado." });
+      return;
     }
 
-    res.status(200).json(lanche)
+    res.status(200).json(lanche);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanche." })
+    res.status(500).json({ erro: "Erro ao buscar lanche." });
   }
-})
+});
 
 router.get("/pesquisa/:termo", async (req, res) => {
-  const { termo } = req.params
+  const { termo } = req.params;
 
   try {
     const lanches = await prisma.item.findMany({
       include: {
         tipo: true,
+        fotos: true,
+        condimentos: { include: { condimento: true } },
       },
       where: {
         OR: [
           { nome: { contains: termo, mode: "insensitive" } },
-          { tipo: { nome: { contains: termo, mode: "insensitive" } } }
-        ]
-      }
-    })
-    res.status(200).json(lanches)
+          { tipo: { nome: { contains: termo, mode: "insensitive" } } },
+        ],
+      },
+    });
+    res.status(200).json(lanches);
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanches." })
+    res.status(500).json({ erro: "Erro ao buscar lanches." });
   }
-})
+});
 
-export default router
+export default router;
