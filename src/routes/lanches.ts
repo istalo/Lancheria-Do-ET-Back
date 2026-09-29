@@ -185,18 +185,46 @@ router.patch("/:id", verificaToken, verificaAdmin, async (req, res) => {
   }
 });
 
+async function itemJaFoiPedido(itemId: number) {
+  const total = await prisma.pedidoItem.count({ where: { itemId } })
+  return total > 0
+}
+
+async function excluirItemComVinculos(itemId: number) {
+  return prisma.$transaction(async (tx) => {
+    await tx.lancheCondimento.deleteMany({ where: { itemId } })
+    await tx.foto.deleteMany({ where: { itemId } })
+    return tx.item.delete({ where: { id: itemId } })
+  })
+}
+
 router.delete("/:id", verificaToken, verificaAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = Number(req.params.id)
+
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ erro: "Id inválido." })
+    return
+  }
 
   try {
-    const lancheDeletado = await prisma.item.delete({
-      where: { id: Number(id) },
-    });
-    res.status(200).json(lancheDeletado);
-  } catch (error) {
-    res.status(500).json({ erro: "Erro ao deletar lanche." });
+    if (await itemJaFoiPedido(id)) {
+      res.status(409).json({
+        erro: "Este lanche já foi pedido e não pode ser excluído. Desative-o no cardápio."
+      })
+      return
+    }
+
+    const lancheDeletado = await excluirItemComVinculos(id)
+    res.status(200).json(lancheDeletado)
+  } catch (error: any) {
+    if (error.code === "P2025") {
+      res.status(404).json({ erro: "Lanche não encontrado." })
+      return
+    }
+    console.error("ERRO AO DELETAR LANCHE:", error)
+    res.status(500).json({ erro: "Erro ao deletar lanche." })
   }
-});
+})
 
 router.get("/destaques", async (req, res) => {
   try {
