@@ -29,6 +29,8 @@ const novoLancheCompletoSchema = z.object({
 router.get("/", async (req, res) => {
   try {
     const lanches = await prisma.item.findMany({
+      where: { disponivel: true },
+      orderBy: { id: "desc" },
       include: {
         tipo: true,
         fotos: true,
@@ -199,7 +201,8 @@ router.delete("/:id", verificaToken, verificaAdmin, async (req, res) => {
 router.get("/destaques", async (req, res) => {
   try {
     const lanches = await prisma.item.findMany({
-      where: { destaque: true },
+      where: { destaque: true, disponivel: true },
+      orderBy: { id: "desc" },
       include: {
         tipo: true,
         fotos: true,
@@ -248,12 +251,14 @@ router.get("/pesquisa/:termo", async (req, res) => {
 
   try {
     const lanches = await prisma.item.findMany({
+      orderBy: { id: "desc" },
       include: {
         tipo: true,
         fotos: true,
         condimentos: { include: { condimento: true } },
       },
       where: {
+        disponivel: true,
         OR: [
           { nome: { contains: termo, mode: "insensitive" } },
           { tipo: { nome: { contains: termo, mode: "insensitive" } } },
