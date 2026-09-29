@@ -7,6 +7,9 @@ CREATE TYPE "NivelAcesso" AS ENUM ('CLIENTE', 'ADMIN');
 -- CreateEnum
 CREATE TYPE "TipoToken" AS ENUM ('ATUALIZAR', 'REDEFINIR_SENHA', 'VALIDACAO_EMAIL');
 
+-- CreateEnum
+CREATE TYPE "TipoItem" AS ENUM ('LANCHE', 'BEBIDA');
+
 -- CreateTable
 CREATE TABLE "usuarios" (
     "id" SERIAL NOT NULL,
@@ -44,6 +47,8 @@ CREATE TABLE "itens" (
     "tipo_id" INTEGER NOT NULL,
     "preco" DECIMAL(10,2) NOT NULL,
     "disponivel" BOOLEAN NOT NULL DEFAULT true,
+    "destaque" BOOLEAN NOT NULL DEFAULT false,
+    "categoria" "TipoItem" NOT NULL DEFAULT 'LANCHE',
 
     CONSTRAINT "itens_pkey" PRIMARY KEY ("id")
 );
@@ -82,6 +87,8 @@ CREATE TABLE "Pedido" (
     "usuario_id" INTEGER NOT NULL,
     "pagamento" "Pagamento" NOT NULL,
     "data" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "observacoes" TEXT,
+    "entregue" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Pedido_pkey" PRIMARY KEY ("id")
 );
@@ -115,6 +122,9 @@ CREATE UNIQUE INDEX "usuarios_email_key" ON "usuarios"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "clientes_tabela_usuario_id_key" ON "clientes_tabela"("usuario_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "lanche_condimentos_item_id_condimento_id_key" ON "lanche_condimentos"("item_id", "condimento_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "tokens_token_key" ON "tokens"("token");

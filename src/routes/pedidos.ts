@@ -69,6 +69,7 @@ router.post("/", verificaToken, async (req: TokenInterface, res) => {
         clienteTabelaId: valida.data.clienteTabelaId,
         pagamento: valida.data.pagamento,
         observacoes: valida.data.observacoes|| null,
+        entregue: false,
         usuarioId: req.usuarioId,
         itens: {
           create: await Promise.all(valida.data.itens.map(async ({ itemId, quantidade = 1 }) => {

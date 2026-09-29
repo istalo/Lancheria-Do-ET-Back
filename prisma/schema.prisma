@@ -46,7 +46,7 @@ model Item {
   tipoId      Int                @map("tipo_id")
   preco       Decimal            @db.Decimal(10, 2)
   disponivel  Boolean            @default(true)
-  destacaque   Boolean           @default(false)
+  destaque   Boolean             @default(false)
   tipo        Tipo               @relation(fields: [tipoId], references: [id])
   fotos       Foto[]
   pedidos     PedidoItem[]
@@ -92,6 +92,7 @@ model Pedido {
   pagamento       Pagamento
   data            DateTime  @default(now())
   observacoes     String?   @db.Text
+  entregue        Boolean   @default(false)
 
   itens         PedidoItem[]
   clienteTabela ClienteTabela @relation(fields: [clienteTabelaId], references: [id])

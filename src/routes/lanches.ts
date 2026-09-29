@@ -12,7 +12,7 @@ const itemSchema = z.object({
   tipoId: z.number().int().positive(),
   preco: z.number().nonnegative(),
   disponivel: z.boolean().optional(),
-  destacaque: z.boolean().optional(),
+  destaque: z.boolean().optional(),
   categoria: z.enum(TipoItem).optional()
 })
 
@@ -218,6 +218,27 @@ router.get("/:id", async (req, res) => {
     res.status(200).json(lanche)
   } catch (error) {
     res.status(500).json({ erro: "Erro ao buscar lanche." })
+  }
+})
+
+router.get("/pesquisa/:termo", async (req, res) => {
+  const { termo } = req.params
+
+  try {
+    const lanches = await prisma.item.findMany({
+      include: {
+        tipo: true,
+      },
+      where: {
+        OR: [
+          { nome: { contains: termo, mode: "insensitive" } },
+          { tipo: { nome: { contains: termo, mode: "insensitive" } } }
+        ]
+      }
+    })
+    res.status(200).json(lanches)
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar lanches." })
   }
 })
 
