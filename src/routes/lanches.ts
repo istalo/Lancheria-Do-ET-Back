@@ -26,7 +26,25 @@ const novoLancheCompletoSchema = z.object({
   categoria: z.enum(TipoItem).default(TipoItem.LANCHE),
 });
 
-router.get("/", async (req, res) => {
+router.get("/admin", async (req, res) => {
+  try {
+    const lanches = await prisma.item.findMany({
+      orderBy: { id: "desc" },
+      include: {
+        tipo: true,
+        fotos: true,
+        condimentos: {
+          include: { condimento: true },
+        },
+      },
+    });
+    res.status(200).json(lanches);
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar lanches." });
+  }
+});
+
+router.get("/admin", async (req, res) => {
   try {
     const lanches = await prisma.item.findMany({
       where: { disponivel: true },
