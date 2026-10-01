@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma'
 import { Router } from 'express'
 import { verificaToken, verificaAdmin } from '../middlewares/verificaToken'
+import { montaGraficosAdmin } from '../services/graficosAdmin'
+import { entregaPedido, recusaPedido } from '../services/pedidosAdmin'
 
 const router = Router()
 
@@ -54,6 +56,61 @@ router.get("/clientes", async (req, res) => {
         res.status(200).json(clientes)
     } catch (error) {
         res.status(500).json({ erro: "Erro ao buscar a lista de clientes." })
+    }
+})
+
+router.get("/graficos", async (req, res) => {
+    try {
+        res.status(200).json(await montaGraficosAdmin())
+    } catch (error) {
+        console.error("ERRO AO MONTAR GRÁFICOS:", error)
+        res.status(500).json({ erro: "Erro ao carregar os gráficos." })
+    }
+})
+
+router.patch("/pedidos/:id/entregar", async (req, res) => {
+    const id = Number(req.params.id)
+
+    if (!Number.isInteger(id)) {
+        res.status(400).json({ erro: "Id inválido." })
+        return
+    }
+
+    try {
+        const resultado = await entregaPedido(id)
+
+        if (!resultado) {
+            res.status(404).json({ erro: "Pedido não encontrado." })
+            return
+        }
+
+        res.status(200).json(resultado)
+    } catch (error) {
+        console.error("ERRO AO MARCAR PEDIDO COMO ENTREGUE:", error)
+        res.status(500).json({ erro: "Erro ao marcar o pedido como entregue." })
+    }
+})
+
+router.delete("/pedidos/:id/recusar", async (req, res) => {
+    const id = Number(req.params.id)
+
+    if (!Number.isInteger(id)) {
+        res.status(400).json({ erro: "Id inválido." })
+        return
+    }
+
+    try {
+        const resultado = await recusaPedido(id)
+
+        if (!resultado) {
+            res.status(404).json({ erro: "Pedido não encontrado." })
+            return
+        }
+
+        res.status(200).json(resultado)
+    } catch (error) {
+        console.error("ERRO AO RECUSAR PEDIDO:", error)
+        res.status(500).json({ erro: "Erro ao recusar o pedido." })
     }
 })
 
