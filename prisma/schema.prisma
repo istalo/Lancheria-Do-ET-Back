@@ -69,19 +69,24 @@ model Foto {
 }
 
 model Condimento {
-  id    Int                @id @default(autoincrement())
-  nome  String
-  itens LancheCondimento[]
+  id               Int                @id @default(autoincrement())
+  nome             String             @unique
+  calorias100g     Decimal?           @map("calorias_100g") @db.Decimal(7, 2)
+  proteinas100g    Decimal?           @map("proteinas_100g") @db.Decimal(7, 2)
+  carboidratos100g Decimal?           @map("carboidratos_100g") @db.Decimal(7, 2)
+  gorduras100g     Decimal?           @map("gorduras_100g") @db.Decimal(7, 2)
+  itens            LancheCondimento[]
 
   @@map("condimentos")
 }
 
 model LancheCondimento {
-  id           Int        @id @default(autoincrement())
-  itemId       Int        @map("item_id")
-  condimentoId Int        @map("condimento_id")
-  item         Item       @relation(fields: [itemId], references: [id])
-  condimento   Condimento @relation(fields: [condimentoId], references: [id])
+  id               Int        @id @default(autoincrement())
+  itemId           Int        @map("item_id")
+  condimentoId     Int        @map("condimento_id")
+  quantidadeGramas Int?       @map("quantidade_gramas")
+  item             Item       @relation(fields: [itemId], references: [id])
+  condimento       Condimento @relation(fields: [condimentoId], references: [id])
 
   @@unique([itemId, condimentoId])
   @@map("lanche_condimentos")
