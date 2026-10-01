@@ -263,7 +263,7 @@ router.get("/destaques", async (req, res) => {
   }
 });
 
-router.get("/:id/tabela-nutricional", verificaToken, async (req, res) => {
+router.get("/:id/tabela-nutricional", async (req, res) => {
   const id = Number(req.params.id)
 
   if (!Number.isInteger(id)) {
