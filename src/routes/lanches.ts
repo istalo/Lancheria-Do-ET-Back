@@ -1,10 +1,11 @@
-import { prisma } from "../../lib/prisma";
-import { TipoItem } from "../../generated/prisma/enums";
-import { Router } from "express";
-import { z } from "zod";
-import { verificaToken, verificaAdmin } from "../middlewares/verificaToken";
+import { prisma } from '../../lib/prisma'
+import { TipoItem } from '../../generated/prisma/enums'
+import { Router } from 'express'
+import { z } from 'zod'
+import { verificaToken, verificaAdmin, verificaCliente } from '../middlewares/verificaToken'
+import { estimarCaloriasComGemini } from './agente/gemini'
 
-const router = Router();
+const router = Router()
 
 const itemSchema = z.object({
   nome: z.string().min(1),
@@ -14,7 +15,7 @@ const itemSchema = z.object({
   disponivel: z.boolean().optional(),
   destaque: z.boolean().optional(),
   categoria: z.enum(TipoItem).optional(),
-});
+})
 
 const novoLancheCompletoSchema = z.object({
   nome: z.string().trim().min(1),
@@ -24,7 +25,12 @@ const novoLancheCompletoSchema = z.object({
   imagemUrl: z.url(),
   condimentos: z.array(z.string().trim().min(1)).default([]),
   categoria: z.enum(TipoItem).default(TipoItem.LANCHE),
-});
+})
+
+const avaliacaoSchema = z.object({
+  nota: z.number().int().min(1).max(5),
+  comentario: z.string().trim().max(1000).optional(),
+})
 
 router.get("/admin", async (req, res) => {
   try {
@@ -37,12 +43,12 @@ router.get("/admin", async (req, res) => {
           include: { condimento: true },
         },
       },
-    });
-    res.status(200).json(lanches);
+    })
+    res.status(200).json(lanches)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanches." });
+    res.status(500).json({ erro: "Erro ao buscar lanches." })
   }
-});
+})
 
 router.get("/admin", async (req, res) => {
   try {
@@ -56,44 +62,44 @@ router.get("/admin", async (req, res) => {
           include: { condimento: true },
         },
       },
-    });
-    res.status(200).json(lanches);
+    })
+    res.status(200).json(lanches)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanches." });
+    res.status(500).json({ erro: "Erro ao buscar lanches." })
   }
-});
+})
 
 router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
-  const valida = novoLancheCompletoSchema.safeParse(req.body);
+  const valida = novoLancheCompletoSchema.safeParse(req.body)
 
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error.issues });
-    return;
+    res.status(400).json({ erro: valida.error.issues })
+    return
   }
 
-  const dados = valida.data;
+  const dados = valida.data
   const condimentos = [
     ...new Map(
       dados.condimentos.map((nome) => [nome.toLocaleLowerCase(), nome]),
     ).values(),
-  ];
+  ]
 
   if (dados.categoria === TipoItem.BEBIDA && condimentos.length > 0) {
-    res.status(400).json({ erro: "Bebidas não podem receber condimentos." });
-    return;
+    res.status(400).json({ erro: "Bebidas não podem receber condimentos." })
+    return
   }
 
   try {
     const lanche = await prisma.$transaction(async (tx) => {
       const tipoExistente = await tx.tipo.findFirst({
         where: { nome: { equals: dados.tipo, mode: "insensitive" } },
-      });
+      })
 
       const tipo =
         tipoExistente ??
         (await tx.tipo.create({
           data: { nome: dados.tipo },
-        }));
+        }))
 
       const item = await tx.item.create({
         data: {
@@ -104,7 +110,7 @@ router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
           categoria: dados.categoria,
           disponivel: true,
         },
-      });
+      })
 
       await tx.foto.create({
         data: {
@@ -112,25 +118,25 @@ router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
           url: dados.imagemUrl,
           descricao: dados.descricao || null,
         },
-      });
+      })
 
       for (const nome of condimentos) {
         const condimentoExistente = await tx.condimento.findFirst({
           where: { nome: { equals: nome, mode: "insensitive" } },
-        });
+        })
 
         const condimento =
           condimentoExistente ??
           (await tx.condimento.create({
             data: { nome },
-          }));
+          }))
 
         await tx.lancheCondimento.create({
           data: {
             itemId: item.id,
             condimentoId: condimento.id,
           },
-        });
+        })
       }
 
       return tx.item.findUnique({
@@ -140,34 +146,34 @@ router.post("/completo", verificaToken, verificaAdmin, async (req, res) => {
           fotos: true,
           condimentos: { include: { condimento: true } },
         },
-      });
-    });
+      })
+    })
 
     res.status(201).json({
       mensagem: "Lanche adicionado com sucesso!",
       lanche,
-    });
+    })
   } catch (error) {
-    console.error("ERRO AO CADASTRAR LANCHE COMPLETO:", error);
-    res.status(500).json({ erro: "Erro ao cadastrar lanche." });
+    console.error("ERRO AO CADASTRAR LANCHE COMPLETO:", error)
+    res.status(500).json({ erro: "Erro ao cadastrar lanche." })
   }
-});
+})
 
 router.post("/", verificaToken, verificaAdmin, async (req, res) => {
-  const valida = itemSchema.safeParse(req.body);
+  const valida = itemSchema.safeParse(req.body)
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error });
-    return;
+    res.status(400).json({ erro: valida.error })
+    return
   }
 
   try {
     const tipo = await prisma.tipo.findUnique({
       where: { id: valida.data.tipoId },
-    });
+    })
 
     if (!tipo) {
-      res.status(400).json({ erro: "O tipo informado não existe." });
-      return;
+      res.status(400).json({ erro: "O tipo informado não existe." })
+      return
     }
 
     const novoLanche = await prisma.item.create({
@@ -176,32 +182,32 @@ router.post("/", verificaToken, verificaAdmin, async (req, res) => {
         disponivel: valida.data.disponivel ?? true,
         categoria: valida.data.categoria ?? TipoItem.LANCHE,
       },
-    });
-    res.status(201).json(novoLanche);
+    })
+    res.status(201).json(novoLanche)
   } catch (error) {
-    console.error("ERRO AO CADASTRAR ITEM:", error);
-    res.status(500).json({ erro: "Erro ao cadastrar lanche." });
+    console.error("ERRO AO CADASTRAR ITEM:", error)
+    res.status(500).json({ erro: "Erro ao cadastrar lanche." })
   }
-});
+})
 
 router.patch("/:id", verificaToken, verificaAdmin, async (req, res) => {
-  const { id } = req.params;
-  const valida = itemSchema.partial().safeParse(req.body);
+  const { id } = req.params
+  const valida = itemSchema.partial().safeParse(req.body)
   if (!valida.success) {
-    res.status(400).json({ erro: valida.error });
-    return;
+    res.status(400).json({ erro: valida.error })
+    return
   }
 
   try {
     const lancheAtualizado = await prisma.item.update({
       where: { id: Number(id) },
       data: valida.data,
-    });
-    res.status(200).json(lancheAtualizado);
+    })
+    res.status(200).json(lancheAtualizado)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao atualizar lanche." });
+    res.status(500).json({ erro: "Erro ao atualizar lanche." })
   }
-});
+})
 
 async function itemJaFoiPedido(itemId: number) {
   const total = await prisma.pedidoItem.count({ where: { itemId } })
@@ -254,19 +260,178 @@ router.get("/destaques", async (req, res) => {
         fotos: true,
         condimentos: { include: { condimento: true } },
       },
-    });
-    res.status(200).json(lanches);
+    })
+    res.status(200).json(lanches)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar destaques." });
+    res.status(500).json({ erro: "Erro ao buscar destaques." })
   }
-});
+})
 
-router.get("/:id", async (req, res) => {
-  const id = Number(req.params.id);
+router.get("/:id/tabela-nutricional", verificaToken, async (req, res) => {
+  const id = Number(req.params.id)
 
   if (!Number.isInteger(id)) {
-    res.status(400).json({ erro: "Id inválido." });
-    return;
+    res.status(400).json({ erro: "Id inválido." })
+    return
+  }
+
+  try {
+    const lanche = await prisma.item.findUnique({
+      where: { id },
+      include: {
+        tipo: true,
+        condimentos: {
+          include: { condimento: true },
+        },
+      },
+    })
+
+    if (!lanche) {
+      res.status(404).json({ erro: "Lanche não encontrado." })
+      return
+    }
+
+    const ingredientes = [
+      lanche.nome,
+      lanche.descricao,
+      ...lanche.condimentos.map(({ condimento }) => condimento.nome),
+    ]
+      .filter((valor): valor is string => Boolean(valor?.trim()))
+      .join(", ")
+
+    const tabelaNutricional = await estimarCaloriasComGemini(ingredientes)
+
+    res.status(200).json({
+      lanche: {
+        id: lanche.id,
+        nome: lanche.nome,
+        descricao: lanche.descricao,
+        tipo: lanche.tipo,
+      },
+      tabelaNutricional,
+    })
+  } catch (error) {
+    console.error("ERRO AO CALCULAR TABELA NUTRICIONAL:", error)
+    res.status(500).json({ erro: "Erro ao calcular tabela nutricional." })
+  }
+})
+
+router.get("/:id/avaliacoes", async (req, res) => {
+  const itemId = Number(req.params.id)
+
+  if (!Number.isInteger(itemId)) {
+    res.status(400).json({ erro: "Id inválido." })
+    return
+  }
+
+  try {
+    const lanche = await prisma.item.findUnique({
+      where: { id: itemId },
+      select: { id: true },
+    })
+
+    if (!lanche) {
+      res.status(404).json({ erro: "Lanche não encontrado." })
+      return
+    }
+
+    const avaliacoes = await prisma.avaliacao.findMany({
+      where: { itemId },
+      orderBy: { criado: "desc" },
+      select: {
+        id: true,
+        nota: true,
+        comentario: true,
+        criado: true,
+        usuario: {
+          select: {
+            id: true,
+            clientePerfil: { select: { nome: true } },
+          },
+        },
+      },
+    })
+
+    const media = avaliacoes.length
+      ? avaliacoes.reduce((total, avaliacao) => total + avaliacao.nota, 0) /
+      avaliacoes.length
+      : 0
+
+    res.status(200).json({
+      media: Number(media.toFixed(1)),
+      total: avaliacoes.length,
+      avaliacoes,
+    })
+  } catch (error) {
+    console.error("ERRO AO BUSCAR AVALIACOES:", error)
+    res.status(500).json({ erro: "Erro ao buscar avaliações." })
+  }
+})
+
+router.post(
+  "/:id/avaliacoes",
+  verificaToken,
+  verificaCliente,
+  async (req: any, res) => {
+    const itemId = Number(req.params.id)
+    const valida = avaliacaoSchema.safeParse(req.body)
+
+    if (!Number.isInteger(itemId)) {
+      res.status(400).json({ erro: "Id inválido." })
+      return
+    }
+
+    if (!valida.success) {
+      res.status(400).json({ erro: valida.error.issues })
+      return
+    }
+
+    try {
+      const lanche = await prisma.item.findUnique({
+        where: { id: itemId },
+        select: { id: true },
+      })
+
+      if (!lanche) {
+        res.status(404).json({ erro: "Lanche não encontrado." })
+        return
+      }
+
+      const avaliacao = await prisma.avaliacao.create({
+        data: {
+          itemId,
+          usuarioId: req.usuarioId,
+          nota: valida.data.nota,
+          comentario: valida.data.comentario || null,
+        },
+        select: {
+          id: true,
+          itemId: true,
+          nota: true,
+          comentario: true,
+          criado: true,
+        },
+      })
+
+      res.status(201).json(avaliacao)
+    } catch (error: any) {
+      if (error.code === "P2002") {
+        res.status(409).json({ erro: "Você já avaliou este lanche." })
+        return
+      }
+
+      console.error("ERRO AO CRIAR AVALIACAO:", error)
+      res.status(500).json({ erro: "Erro ao criar avaliação." })
+    }
+  },
+)
+
+router.get("/:id", async (req, res) => {
+  const id = Number(req.params.id)
+
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ erro: "Id inválido." })
+    return
   }
 
   try {
@@ -279,21 +444,21 @@ router.get("/:id", async (req, res) => {
           include: { condimento: true },
         },
       },
-    });
+    })
 
     if (!lanche) {
-      res.status(404).json({ erro: "Lanche não encontrado." });
-      return;
+      res.status(404).json({ erro: "Lanche não encontrado." })
+      return
     }
 
-    res.status(200).json(lanche);
+    res.status(200).json(lanche)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanche." });
+    res.status(500).json({ erro: "Erro ao buscar lanche." })
   }
-});
+})
 
 router.get("/pesquisa/:termo", async (req, res) => {
-  const { termo } = req.params;
+  const { termo } = req.params
 
   try {
     const lanches = await prisma.item.findMany({
@@ -310,11 +475,11 @@ router.get("/pesquisa/:termo", async (req, res) => {
           { tipo: { nome: { contains: termo, mode: "insensitive" } } },
         ],
       },
-    });
-    res.status(200).json(lanches);
+    })
+    res.status(200).json(lanches)
   } catch (error) {
-    res.status(500).json({ erro: "Erro ao buscar lanches." });
+    res.status(500).json({ erro: "Erro ao buscar lanches." })
   }
-});
+})
 
-export default router;
+export default router

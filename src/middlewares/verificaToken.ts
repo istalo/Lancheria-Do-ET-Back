@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+import { prisma } from '../../lib/prisma'
 
 export interface TokenInterface extends Request {
   usuarioId?: number
@@ -45,4 +46,28 @@ export function verificaAdmin(req: TokenInterface, res: Response, next: NextFunc
     return
   }
   next()
+}
+
+export async function verificaCliente(req: TokenInterface, res: Response, next: NextFunction) {
+  if (req.nivelAcesso !== 'CLIENTE' || !req.usuarioId) {
+    res.status(403).json({ erro: 'Apenas clientes podem avaliar lanches.' })
+    return
+  }
+
+  try {
+    const cliente = await prisma.clienteTabela.findUnique({
+      where: { usuarioId: req.usuarioId },
+      select: { id: true },
+    })
+
+    if (!cliente) {
+      res.status(403).json({ erro: 'Cadastre seu perfil de cliente antes de avaliar.' })
+      return
+    }
+
+    next()
+  } catch (error) {
+    console.error('ERRO AO VALIDAR CLIENTE:', error)
+    res.status(500).json({ erro: 'Erro ao validar cliente.' })
+  }
 }

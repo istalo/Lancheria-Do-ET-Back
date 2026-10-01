@@ -15,6 +15,7 @@ model Usuario {
   clientePerfil ClienteTabela?
   pedidos       Pedido[]
   tokens        Token[]
+  avaliacoes    Avaliacao[]
 
   @@map("usuarios")
 }
@@ -46,10 +47,11 @@ model Item {
   tipoId      Int                @map("tipo_id")
   preco       Decimal            @db.Decimal(10, 2)
   disponivel  Boolean            @default(true)
-  destaque   Boolean             @default(false)
+  destaque    Boolean            @default(false)
   tipo        Tipo               @relation(fields: [tipoId], references: [id])
   fotos       Foto[]
   pedidos     PedidoItem[]
+  avaliacoes  Avaliacao[]
   condimentos LancheCondimento[]
   categoria   TipoItem           @default(LANCHE)
 
@@ -108,6 +110,22 @@ model PedidoItem {
 
   pedido Pedido @relation(fields: [pedidoId], references: [id])
   item   Item   @relation(fields: [itemId], references: [id])
+}
+
+model Avaliacao {
+  id         Int      @id @default(autoincrement())
+  itemId     Int      @map("item_id")
+  usuarioId  Int      @map("usuario_id")
+  nota       Int
+  comentario String?  @db.Text
+  criado     DateTime @default(now())
+
+  item    Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, usuarioId])
+  @@index([itemId])
+  @@map("avaliacoes")
 }
 
 model Token {

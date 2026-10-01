@@ -13,12 +13,6 @@ import pedidosRoutes from './routes/pedidos'
 import clientesTabelaRoutes from './routes/clientesTabela'
 import tiposRoutes from './routes/tipos'
 
-// Gemini
-import { estimarCaloriasComGemini } from './routes/agente/gemini'
-
-// Middleware
-import { verificaToken } from './middlewares/verificaToken'
-
 // Swagger
 import swaggerUi from 'swagger-ui-express'
 import swaggerDocument from '../swagger-output.json'
@@ -41,23 +35,6 @@ app.use('/lanches-condimentos', lanchesCondimentosRoutes)
 app.use('/pedidos', pedidosRoutes)
 app.use('/clientes', clientesTabelaRoutes)
 app.use('/tipos', tiposRoutes)
-
-// Rota do Gemini para estimar calorias
-app.post('/calorias', verificaToken, async (req, res) => {
-  const { descricao } = req.body
-
-  if (!descricao) {
-    return res.status(400).json({ erro: "A descrição do lanche é obrigatória para calcular as calorias." })
-  }
-
-  try {
-    const calorias = await estimarCaloriasComGemini(descricao)
-    res.json(calorias)
-  } catch (error) {
-    console.error("Erro ao estimar calorias:", error)
-    res.status(500).json({ erro: "Erro ao estimar calorias." })
-  }
-})
 
 app.get('/', (req, res) => {
   res.send('API: Lancheria do ET')
