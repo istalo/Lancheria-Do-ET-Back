@@ -50,7 +50,7 @@ router.get("/admin", async (req, res) => {
   }
 })
 
-router.get("/admin", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const lanches = await prisma.item.findMany({
       where: { disponivel: true },
