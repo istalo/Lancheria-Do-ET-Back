@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { Pagamento } from '../../generated/prisma/enums'
+import { emiteNovoPedido } from '../socket'
 import { Router } from 'express'
 import { z } from 'zod'
 import { TokenInterface, verificaToken, verificaAdmin } from '../middlewares/verificaToken'
@@ -68,7 +69,7 @@ router.post("/", verificaToken, async (req: TokenInterface, res) => {
       data: {
         clienteTabelaId: valida.data.clienteTabelaId,
         pagamento: valida.data.pagamento,
-        observacoes: valida.data.observacoes|| null,
+        observacoes: valida.data.observacoes || null,
         entregue: false,
         usuarioId: req.usuarioId,
         itens: {
@@ -83,6 +84,7 @@ router.post("/", verificaToken, async (req: TokenInterface, res) => {
       },
       include: pedidoInclude
     })
+    emiteNovoPedido(pedido)
     res.status(201).json(pedido)
   } catch (error) {
     res.status(400).json({ erro: "Erro ao criar pedido." })

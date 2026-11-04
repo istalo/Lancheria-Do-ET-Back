@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import { createServer } from 'http'
+import { iniciaSocket } from './socket'
 
 // Import de Rotas
 import adminRoutes from './routes/admin'
@@ -40,6 +42,9 @@ app.get('/', (req, res) => {
   res.send('API: Lancheria do ET')
 })
 
-app.listen(port, () => {
+const server = createServer(app)
+iniciaSocket(server)
+
+server.listen(port, () => {
   console.log(`Servidor rodando na porta: ${port}`)
 })
