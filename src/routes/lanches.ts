@@ -2,16 +2,8 @@ import { prisma } from "../../lib/prisma";
 import { TipoItem } from "../../generated/prisma/enums";
 import { Router } from "express";
 import { z } from "zod";
-import {
-  verificaToken,
-  verificaAdmin,
-  verificaCliente,
-} from "../middlewares/verificaToken";
-import {
-  unificaIngredientes,
-  estimaNutricoesFaltantes,
-  vinculaIngredientes,
-} from "../services/ingredientes";
+import { verificaToken, verificaAdmin, verificaCliente } from "../middlewares/verificaToken";
+import { unificaIngredientes, estimaNutricoesFaltantes, vinculaIngredientes } from "../services/ingredientes";
 import { calculaTabela } from "../services/tabelaNutricional";
 
 const router = Router();
@@ -338,7 +330,7 @@ router.get("/:id/avaliacoes", async (req, res) => {
 
     const media = avaliacoes.length
       ? avaliacoes.reduce((total, avaliacao) => total + avaliacao.nota, 0) /
-        avaliacoes.length
+      avaliacoes.length
       : 0;
 
     res.status(200).json({

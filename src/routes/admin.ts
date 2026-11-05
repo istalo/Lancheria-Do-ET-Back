@@ -1,5 +1,8 @@
 import { prisma } from '../../lib/prisma'
 import { Router } from 'express'
+import { z } from 'zod'
+import { StatusPedido } from '../../generated/prisma/enums'
+import { atualizaStatusPedido } from './pedidosAdmin'
 import { verificaToken, verificaAdmin } from '../middlewares/verificaToken'
 import { montaGraficosAdmin } from '../services/graficosAdmin'
 import { entregaPedido, recusaPedido } from '../services/pedidosAdmin'
@@ -88,6 +91,28 @@ router.patch("/pedidos/:id/entregar", async (req, res) => {
     } catch (error) {
         console.error("ERRO AO MARCAR PEDIDO COMO ENTREGUE:", error)
         res.status(500).json({ erro: "Erro ao marcar o pedido como entregue." })
+    }
+})
+
+router.patch("/pedidos/:id/status", async (req, res) => {
+    const id = Number(req.params.id)
+    const valida = z.object({ status: z.enum(StatusPedido) }).safeParse(req.body)
+
+    if (!Number.isInteger(id) || !valida.success) {
+        res.status(400).json({ erro: "Dados inválidos." })
+        return
+    }
+
+    try {
+        const pedido = await atualizaStatusPedido(id, valida.data.status)
+        if (!pedido) { res.status(404).json({ erro: "Pedido não encontrado." }); return }
+        res.status(200).json(pedido)
+    } catch (error: any) {
+        if (error.message === 'TRANSICAO_INVALIDA') {
+            res.status(409).json({ erro: "Transição de status inválida." })
+            return
+        }
+        res.status(500).json({ erro: "Erro ao atualizar status." })
     }
 })
 

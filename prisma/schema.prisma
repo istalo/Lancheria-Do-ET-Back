@@ -96,6 +96,7 @@ model Pedido {
   id              Int       @id @default(autoincrement())
   clienteTabelaId Int       @map("clientetabela_id")
   usuarioId       Int       @map("usuario_id")
+  status          StatusPedido @default(RECEBIDO)
   pagamento       Pagamento
   data            DateTime  @default(now())
   observacoes     String?   @db.Text
@@ -167,4 +168,12 @@ enum TipoToken {
 enum TipoItem {
   LANCHE
   BEBIDA
+}
+
+enum StatusPedido {
+  RECEBIDO
+  EM_PREPARO
+  SAIU_PARA_ENTREGA
+  ENTREGUE
+  CANCELADO
 }
