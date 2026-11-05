@@ -1,5 +1,7 @@
 import { prisma } from '../../lib/prisma'
 import { enviaEmailPedido, type DadosEmailPedido } from './emailPedidos'
+import { StatusPedido } from '../../generated/prisma/enums'
+import { emiteStatusPedido } from '../socket'
 
 export type ResultadoAcaoPedido = { emailEnviado: boolean }
 
@@ -59,4 +61,26 @@ export async function recusaPedido(id: number): Promise<ResultadoAcaoPedido | nu
   const emailEnviado = await enviaEmailPedido('RECUSADO', dadosParaEmail(pedido))
 
   return { emailEnviado }
+}
+
+// Define as transições de status para os pedidos
+const TRANSICOES: Record<StatusPedido, StatusPedido[]> = {
+  RECEBIDO: ['EM_PREPARO', 'CANCELADO'],
+  EM_PREPARO: ['SAIU_PARA_ENTREGA', 'CANCELADO'],
+  SAIU_PARA_ENTREGA: ['ENTREGUE'],
+  ENTREGUE: [],
+  CANCELADO: [],
+}
+
+export async function atualizaStatusPedido(id: number, novo: StatusPedido) {
+  const atual = await prisma.pedido.findUnique({ where: { id }, select: { status: true } })
+  if (!atual) return null
+
+  if (!TRANSICOES[atual.status].includes(novo)) {
+    throw new Error('TRANSICAO_INVALIDA')
+  }
+
+  const pedido = await prisma.pedido.update({ where: { id }, data: { status: novo } })
+  emiteStatusPedido(pedido)
+  return pedido
 }
